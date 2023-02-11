@@ -93,51 +93,16 @@ pub struct PrHandle {
 }
 
 impl PrHandle {
-    fn new(pr: &github::PullRequest) -> Result<PrHandle, std::option::NoneError> {
-        let pr_handle = PrHandle {
-            gitref: pr
-                .pull_request
-                .as_ref()?
-                .head
-                .as_ref()?
-                .ref_key
-                .as_ref()?
-                .clone(),
-            pr_number: pr.pull_request.as_ref()?.number?,
-            github_clone_url: pr
-                .pull_request
-                .as_ref()?
-                .head
-                .as_ref()?
-                .repo
-                .as_ref()?
-                .ssh_url
-                .as_ref()?
-                .clone(),
-            github_remote: format!("github-{}", pr.pull_request.as_ref()?.number?,),
+    fn new(pr: &github::PullRequest) -> PrHandle {
+        PrHandle {
+            gitref: pr.pull_request.head.ref_key.clone(),
+            pr_number: pr.pull_request.number,
+            github_clone_url: pr.pull_request.head.repo.ssh_url.clone(),
+            github_remote: format!("github-{}", pr.pull_request.number,),
             gitlab_remote: "gitlab".to_string(),
-            base_full_name: pr
-                .pull_request
-                .as_ref()?
-                .base
-                .as_ref()?
-                .repo
-                .as_ref()?
-                .full_name
-                .as_ref()?
-                .clone(),
-            head_full_name: pr
-                .pull_request
-                .as_ref()?
-                .head
-                .as_ref()?
-                .repo
-                .as_ref()?
-                .full_name
-                .as_ref()?
-                .clone(),
-        };
-        Ok(pr_handle)
+            base_full_name: pr.pull_request.base.repo.full_name.clone(),
+            head_full_name: pr.pull_request.head.repo.full_name.clone(),
+        }
     }
 }
 
@@ -273,7 +238,7 @@ fn handle_pr_closed_with_repo(
     repo: &mut dyn RepositoryExt,
     pr: &github::PullRequest,
 ) -> Result<String, GitError> {
-    let pr_handle = PrHandle::new(pr)?;
+    let pr_handle = PrHandle::new(pr);
 
     info!("pr_handle={:#?}", pr_handle);
 
@@ -285,26 +250,26 @@ fn handle_pr_closed_with_repo(
 
 fn handle_pr_closed(pr: &github::PullRequest) -> Result<String, GitError> {
     info!("Handling closed PR");
-    let url = pr.repository.as_ref()?.ssh_url.as_ref()?;
+    let url = &pr.repository.ssh_url;
     let mut repos = REPOS.lock();
     let repo_data = repos
         .as_mut()
         .unwrap()
         .entry(url.clone())
-        .or_insert(clone_repo(url)?);
+        .or_insert(clone_repo(url.as_str())?);
 
     handle_pr_closed_with_repo(&mut repo_data.repo, pr)
 }
 
 fn handle_pr_updated(pr: &github::PullRequest) -> Result<String, GitError> {
     info!("Handling open PR");
-    let url = pr.repository.as_ref()?.ssh_url.as_ref()?;
+    let url = &pr.repository.ssh_url;
     let mut repos = REPOS.lock();
     let repo_data = repos
         .as_mut()
         .unwrap()
         .entry(url.clone())
-        .or_insert(clone_repo(url)?);
+        .or_insert(clone_repo(url.as_str())?);
 
     handle_pr_updated_with_repo(&mut repo_data.repo, pr)
 }
@@ -314,7 +279,7 @@ fn handle_pr_updated_with_repo(
     pr: &github::PullRequest,
 ) -> Result<String, GitError> {
     info!("handle_pr_updated_with_repo");
-    let pr_handle = PrHandle::new(pr)?;
+    let pr_handle = PrHandle::new(pr);
 
     info!("pr_handle={:#?}", pr_handle);
 
@@ -327,22 +292,15 @@ fn handle_pr_updated_with_repo(
 }
 
 impl github::PullRequest {
-    fn is_fork(&self) -> Result<bool, std::option::NoneError> {
-        Ok(self
-            .pull_request
-            .as_ref()?
-            .head
-            .as_ref()?
-            .repo
-            .as_ref()?
-            .fork?)
+    fn is_fork(&self) -> bool {
+        self.pull_request.head.repo.fork
     }
 }
 
 fn handle_pr(pr: github::PullRequest) -> Result<(), RequestErrorResult> {
-    if pr.is_fork()? {
+    if pr.is_fork() {
         info!("PR is a fork");
-        let result = match pr.action.as_ref()?.as_ref() {
+        let result = match pr.action.as_ref() {
             "closed" => handle_pr_closed(&pr),
             _ => handle_pr_updated(&pr),
         };
@@ -356,12 +314,12 @@ fn handle_pr(pr: github::PullRequest) -> Result<(), RequestErrorResult> {
     Ok(())
 }
 
-fn write_issue_comment(
+async fn write_issue_comment(
     client: &reqwest::Client,
     ic: &github::IssueComment,
     body: &str,
 ) -> Result<(), GitError> {
-    let repo_full_name = ic.repository.as_ref()?.full_name.as_ref()?;
+    let repo_full_name = ic.repository.full_name.clone();
     let repo_full_name_parts: Vec<String> = repo_full_name
         .split('/')
         .map(std::string::ToString::to_string)
@@ -375,13 +333,14 @@ fn write_issue_comment(
         client,
         &repo_full_name_parts[0],
         &repo_full_name_parts[1],
-        ic.issue.as_ref()?.number?,
+        ic.issue.number,
         body,
     )
+    .await
 }
 
-fn get_sha(client: &reqwest::Client, ic: &github::IssueComment) -> Result<String, GitError> {
-    let repo_full_name = ic.repository.as_ref()?.full_name.as_ref()?;
+async fn get_sha(client: &reqwest::Client, ic: &github::IssueComment) -> Result<String, GitError> {
+    let repo_full_name = ic.repository.full_name.clone();
     let repo_full_name_parts: Vec<String> = repo_full_name
         .split('/')
         .map(std::string::ToString::to_string)
@@ -395,22 +354,27 @@ fn get_sha(client: &reqwest::Client, ic: &github::IssueComment) -> Result<String
         client,
         &repo_full_name_parts[0],
         &repo_full_name_parts[1],
-        ic.issue.as_ref()?.number?,
-    )?;
-    Ok(pr.head.as_ref()?.sha.as_ref()?.clone())
+        ic.issue.number,
+    )
+    .await?;
+    Ok(pr.head.sha.clone())
 }
 
 impl github::IssueComment {
-    fn is_from_pr(&self) -> Result<bool, std::option::NoneError> {
-        Ok(self.issue.as_ref()?.pull_request.is_some())
+    fn is_from_pr(&self) -> bool {
+        self.issue.pull_request.is_some()
     }
 }
 
-fn find_pipeline_id(client: &reqwest::Client, project: &str, sha: &str) -> Result<i64, GitError> {
+async fn find_pipeline_id(
+    client: &reqwest::Client,
+    project: &str,
+    sha: &str,
+) -> Result<i64, GitError> {
     let mut result_len = 100;
     let mut page = 1;
     while result_len == 100 {
-        let pipelines = gitlab_client::get_pipelines(client, project, page, 100)?;
+        let pipelines = gitlab_client::get_pipelines(client, project, page, 100).await?;
         let pipeline = pipelines
             .iter()
             .filter(|p| p.sha.is_some() && p.id.is_some())
@@ -429,16 +393,16 @@ fn find_pipeline_id(client: &reqwest::Client, project: &str, sha: &str) -> Resul
     })
 }
 
-fn handle_retry_command(
+async fn handle_retry_command(
     client: &reqwest::Client,
     ic: &github::IssueComment,
 ) -> Result<(), GitError> {
-    let repo_full_name = ic.repository.as_ref()?.full_name.as_ref()?;
-    let sha = get_sha(&client, ic)?;
+    let repo_full_name = ic.repository.full_name.clone();
+    let sha = get_sha(&client, ic).await?;
     let project = get_gitlab_repo_name(&repo_full_name);
     info!("Got retry command for project={} sha={}", project, sha);
-    let pipeline_id = find_pipeline_id(&client, &get_gitlab_repo_name(&project), &sha)?;
-    gitlab_client::retry_pipeline(&client, &project, pipeline_id)?;
+    let pipeline_id = find_pipeline_id(&client, &get_gitlab_repo_name(&project), &sha).await?;
+    gitlab_client::retry_pipeline(&client, &project, pipeline_id).await?;
 
     let comment_body = format!(
         "Sent **retry** command for pipeline [**{}**]({}/pipelines/{}) on [**GitLab**]({})
@@ -450,26 +414,23 @@ Have a great day! 😄",
         gitlab_client::make_ext_url(&project),
     );
 
-    write_issue_comment(&client, ic, &comment_body)
+    write_issue_comment(&client, ic, &comment_body).await
 }
 
-fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
+async fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
     let client = reqwest::Client::new();
     info!(
         "Issue comment received for issue number={} action={}",
-        ic.issue.as_ref()?.number?,
-        ic.action.as_ref()?,
+        ic.issue.number, ic.action,
     );
 
-    if ic.sender.as_ref()?.login.as_ref()? == &config::CONFIG.github.username {
+    if ic.sender.login == Some(config::CONFIG.github.username.to_owned()) {
         info!("Hey this is my comment :D Skipping");
         return Ok(());
     }
 
-    let command_res = commands::parse_body(
-        ic.comment.as_ref()?.body.as_ref()?,
-        &*config::CONFIG.github.username,
-    );
+    let command_res =
+        commands::parse_body(ic.comment.body.as_ref(), &*config::CONFIG.github.username);
 
     match command_res {
         Err(commands::CommandError::UnknownCommand) => {
@@ -479,7 +440,7 @@ fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
 Thanks for asking 🥰"
                 .to_string();
 
-            write_issue_comment(&client, &ic, &comment_body)?;
+            write_issue_comment(&client, &ic, &comment_body).await?;
             Ok(())
         }
         _ => {
@@ -490,16 +451,16 @@ Thanks for asking 🥰"
                 Ok(())
             } else {
                 match command.command {
-                    commands::CommandAction::Retry => handle_retry_command(&client, &ic),
+                    commands::CommandAction::Retry => handle_retry_command(&client, &ic).await,
                 }
             }
         }
     }
 }
 
-fn handle_ic(ic: github::IssueComment) {
-    if ic.is_from_pr().unwrap() {
-        match handle_pr_ic(ic) {
+async fn handle_ic(ic: github::IssueComment) {
+    if ic.is_from_pr() {
+        match handle_pr_ic(ic).await {
             Ok(()) => info!("Finished handling issue comment"),
             Err(_err) => info!("Ignoring issue comment because it's invalid"),
         }
@@ -510,15 +471,15 @@ pub fn handle_event_body(event_type: &str, body: &str) -> Result<String, Request
     match event_type {
         "push" => {
             let push: github::Push = serde_json::from_str(body)?;
-            info!("Push ref={}", push.ref_key.as_ref()?);
+            info!("Push ref={}", push.ref_key);
             Ok(String::from("Push received 😘"))
         }
         "pull_request" => {
             if config::feature_enabled(&config::Feature::ExternalPr) {
                 let pr: github::PullRequest = serde_json::from_str(body)?;
                 // check if pull request event trigger action is enabled in config file
-                if config::action_enabled(pr.action.as_ref()?) {
-                    info!("PullRequest action={}", pr.action.as_ref()?);
+                if config::action_enabled(pr.action.as_ref()) {
+                    info!("PullRequest action={}", pr.action);
                     thread::spawn(move || handle_pr(pr));
                 } else {
                     info!("Event trigger action not enabled. Skipping event.");
@@ -533,8 +494,12 @@ pub fn handle_event_body(event_type: &str, body: &str) -> Result<String, Request
                 let ic: github::IssueComment = serde_json::from_str(body)?;
                 info!(
                     "Issue comment action={} user={}",
-                    ic.action.as_ref()?,
-                    ic.issue.as_ref()?.user.as_ref()?.login.as_ref()?
+                    ic.action,
+                    ic.issue
+                        .user
+                        .as_ref()
+                        .map(|u| u.login.clone())
+                        .unwrap_or("Unknown user".to_owned())
                 );
                 thread::spawn(move || handle_ic(ic));
             } else {
@@ -561,8 +526,8 @@ mod test {
             let pr: github::PullRequest =
                 serde_json::from_str(&read_testdata_to_string("github_open_pull_request.json"))
                     .unwrap();
-            assert_eq!(pr.is_fork().unwrap(), false);
-            let _pr_handle = PrHandle::new(&pr).unwrap();
+            assert_eq!(pr.is_fork(), false);
+            let _pr_handle = PrHandle::new(&pr);
         });
     }
 
@@ -573,8 +538,8 @@ mod test {
             let pr: github::PullRequest =
                 serde_json::from_str(&read_testdata_to_string("github_reopen_pull_request.json"))
                     .unwrap();
-            assert_eq!(pr.is_fork().unwrap(), false);
-            let _pr_handle = PrHandle::new(&pr).unwrap();
+            assert_eq!(pr.is_fork(), false);
+            let _pr_handle = PrHandle::new(&pr);
         });
     }
 
@@ -585,8 +550,8 @@ mod test {
             let pr: github::PullRequest =
                 serde_json::from_str(&read_testdata_to_string("github_open_pr_forked.json"))
                     .unwrap();
-            assert_eq!(pr.is_fork().unwrap(), true);
-            let _pr_handle = PrHandle::new(&pr).unwrap();
+            assert_eq!(pr.is_fork(), true);
+            let _pr_handle = PrHandle::new(&pr);
         });
     }
 
@@ -597,7 +562,7 @@ mod test {
             let pr: github::PullRequest =
                 serde_json::from_str(&read_testdata_to_string("github_close_pr_forked.json"))
                     .unwrap();
-            let _pr_handle = PrHandle::new(&pr).unwrap();
+            let _pr_handle = PrHandle::new(&pr);
         });
     }
 

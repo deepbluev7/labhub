@@ -30,7 +30,7 @@ fn make_repo_url(org: &str, repo: &str) -> String {
     format!("https://api.{}/repos/{}/{}", hostname, org, repo)
 }
 
-pub fn get_pull(
+pub async fn get_pull(
     client: &reqwest::Client,
     org: &str,
     repo: &str,
@@ -39,19 +39,21 @@ pub fn get_pull(
     let res: github::RepoPr = client
         .get(&format!("{}/pulls/{}", make_repo_url(org, repo), number))
         .headers(headers(&config::CONFIG.github.api_token))
-        .send()?
-        .json()?;
+        .send()
+        .await?
+        .json::<github::RepoPr>()
+        .await?;
     Ok(res)
 }
 
-pub fn create_issue_comment(
+pub async fn create_issue_comment(
     client: &reqwest::Client,
     org: &str,
     repo: &str,
     number: i64,
     body: &str,
 ) -> Result<(), GitError> {
-    let mut res = client
+    let res = client
         .post(&format!(
             "{}/issues/{}/comments",
             make_repo_url(org, repo),
@@ -59,12 +61,14 @@ pub fn create_issue_comment(
         ))
         .headers(headers(&config::CONFIG.github.api_token))
         .body(serde_json::json!({"body":body.to_string()}).to_string())
-        .send()?;
-    let body = res.text()?;
+        .send()
+        .await?;
+
     match res.status() {
         reqwest::StatusCode::CREATED => Ok(()),
         _ => {
-            let msg = format!("Error creating issue comment: res={:#?} body={}", res, body);
+            let body = res.text().await?;
+            let msg = format!("Error creating issue comment: body={}", body);
             error!("{}", msg);
             Err(GitError { message: msg })
         }

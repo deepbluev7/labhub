@@ -42,7 +42,7 @@ pub fn make_ext_url(project: &str) -> String {
     format!("https://{}/{}", hostname, project)
 }
 
-pub fn get_pipelines(
+pub async fn get_pipelines(
     client: &reqwest::Client,
     project: &str,
     page: i64,
@@ -56,12 +56,14 @@ pub fn get_pipelines(
             per_page
         ))
         .headers(headers(&config::CONFIG.gitlab.api_token))
-        .send()?
-        .json()?;
+        .send()
+        .await?
+        .json()
+        .await?;
     Ok(res)
 }
 
-pub fn retry_pipeline(
+pub async fn retry_pipeline(
     client: &reqwest::Client,
     project: &str,
     pipeline_id: i64,
@@ -73,7 +75,8 @@ pub fn retry_pipeline(
             pipeline_id
         ))
         .headers(headers(&config::CONFIG.gitlab.api_token))
-        .send()?;
+        .send()
+        .await?;
 
     match res.status() {
         reqwest::StatusCode::CREATED => Ok(()),

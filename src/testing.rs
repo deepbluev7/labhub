@@ -19,7 +19,9 @@ pub fn read_testdata_to_string(filename: &str) -> String {
 static LOGGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 fn setup() {
-    if !LOGGER_INITIALIZED.compare_and_swap(false, true, Ordering::Relaxed) {
+    if LOGGER_INITIALIZED.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+        == Ok(false)
+    {
         env_logger::try_init().expect("Error initializing logger");
     }
 }

@@ -1,28 +1,48 @@
 use crate::api::github_signature;
 use crate::commands;
 
-use rocket::request::Request;
-use rocket::response::content;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use std::io;
 
-#[derive(Debug, Responder)]
-#[response(status = 500, content_type = "json")]
+#[derive(Debug)]
 pub struct ResponseError {
-    response: content::Json<String>,
+    response: serde_json::Value,
 }
 
-#[derive(Debug, Responder)]
-#[response(status = 400, content_type = "json")]
+#[derive(Debug)]
 pub struct BadRequest {
-    response: content::Json<String>,
+    response: serde_json::Value,
 }
 
-#[derive(Debug, Responder)]
+#[derive(Debug)]
 pub enum RequestErrorResult {
-    #[response(status = 400, content_type = "json")]
     BadRequest(BadRequest),
-    #[response(status = 500, content_type = "json")]
     ResponseError(ResponseError),
+}
+
+impl IntoResponse for ResponseError {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(self.response)).into_response()
+    }
+}
+
+impl IntoResponse for BadRequest {
+    fn into_response(self) -> Response {
+        (StatusCode::BAD_REQUEST, Json(self.response)).into_response()
+    }
+}
+
+impl IntoResponse for RequestErrorResult {
+    fn into_response(self) -> Response {
+        match self {
+            RequestErrorResult::BadRequest(br) => br.into_response(),
+            RequestErrorResult::ResponseError(re) => re.into_response(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -34,7 +54,7 @@ impl From<io::Error> for RequestErrorResult {
     fn from(error: io::Error) -> Self {
         RequestErrorResult::ResponseError {
             0: ResponseError {
-                response: content::Json(json!({ "error": format!("{:?}", error) }).to_string()),
+                response: serde_json::json!({ "error": format!("{:?}", error) }),
             },
         }
     }
@@ -44,17 +64,7 @@ impl From<github_signature::SignatureError> for RequestErrorResult {
     fn from(error: github_signature::SignatureError) -> Self {
         RequestErrorResult::BadRequest {
             0: BadRequest {
-                response: content::Json(json!({ "error": format!("{:?}", error) }).to_string()),
-            },
-        }
-    }
-}
-
-impl From<std::option::NoneError> for RequestErrorResult {
-    fn from(error: std::option::NoneError) -> Self {
-        RequestErrorResult::BadRequest {
-            0: BadRequest {
-                response: content::Json(json!({ "error": format!("{:?}", error) }).to_string()),
+                response: serde_json::json!({ "error": format!("{:?}", error) }),
             },
         }
     }
@@ -64,7 +74,7 @@ impl From<serde_json::error::Error> for RequestErrorResult {
     fn from(error: serde_json::error::Error) -> Self {
         RequestErrorResult::BadRequest {
             0: BadRequest {
-                response: content::Json(json!({ "error": format!("{:?}", error) }).to_string()),
+                response: serde_json::json!({ "error": format!("{:?}", error) }),
             },
         }
     }
@@ -74,14 +84,6 @@ impl From<git2::Error> for GitError {
     fn from(error: git2::Error) -> Self {
         GitError {
             message: format!("Git error: {:?}", error.message()),
-        }
-    }
-}
-
-impl From<std::option::NoneError> for GitError {
-    fn from(error: std::option::NoneError) -> Self {
-        GitError {
-            message: format!("Git error: {:?}", error),
         }
     }
 }
@@ -116,38 +118,4 @@ impl From<commands::CommandError> for GitError {
             message: format!("Git command error: {:?}", error),
         }
     }
-}
-
-#[catch(404)]
-pub fn not_found(req: &Request) -> content::Json<String> {
-    content::Json(
-        json!({
-            "error":
-                format!(
-                    "Look elsewhere, perhaps? No matching route for uri={}",
-                    req.uri()
-                )
-        })
-        .to_string(),
-    )
-}
-
-#[catch(500)]
-pub fn internal_server_error(_req: &Request) -> content::Json<String> {
-    content::Json(
-        json!({
-            "error":"Internal server error 🤖"
-        })
-        .to_string(),
-    )
-}
-
-#[catch(422)]
-pub fn unprocessable_entity(_req: &Request) -> content::Json<String> {
-    content::Json(
-        json!({
-            "error":"The request was well-formed but was unable to be followed due to semantic errors."
-        })
-        .to_string(),
-    )
 }

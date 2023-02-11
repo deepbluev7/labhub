@@ -175,7 +175,7 @@ pub struct PingSender {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Push {
     #[serde(rename = "ref")]
-    pub ref_key: Option<String>,
+    pub ref_key: String,
     pub before: Option<String>,
     pub after: Option<String>,
     pub created: Option<bool>,
@@ -387,27 +387,27 @@ pub struct PushSender {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PullRequest {
-    pub action: Option<String>,
-    pub number: Option<i64>,
-    pub pull_request: Option<PullRequestPullRequest>,
-    pub repository: Option<PullRequestRepository>,
-    pub sender: Option<PullRequestSender>,
+    pub action: String,
+    pub number: i64,
+    pub pull_request: PullRequestPullRequest,
+    pub repository: PullRequestRepository,
+    pub sender: PullRequestSender,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PullRequestPullRequest {
-    pub url: Option<String>,
-    pub id: Option<i64>,
+    pub url: String,
+    pub id: i64,
     pub node_id: Option<String>,
     pub html_url: Option<String>,
     pub diff_url: Option<String>,
     pub patch_url: Option<String>,
     pub issue_url: Option<String>,
-    pub number: Option<i64>,
+    pub number: i64,
     pub state: Option<String>,
     pub locked: Option<bool>,
     pub title: Option<String>,
-    pub user: Option<PullRequestPullRequestUser>,
+    pub user: PullRequestPullRequestUser,
     pub body: Option<String>,
     pub created_at: Option<serde_json::value::Value>,
     pub updated_at: Option<serde_json::value::Value>,
@@ -421,8 +421,8 @@ pub struct PullRequestPullRequest {
     pub review_comment_url: Option<String>,
     pub comments_url: Option<String>,
     pub statuses_url: Option<String>,
-    pub head: Option<PullRequestPullRequestHead>,
-    pub base: Option<PullRequestPullRequestBase>,
+    pub head: PullRequestPullRequestHead,
+    pub base: PullRequestPullRequestBase,
     pub _links: Option<PullRequestPullRequestLinks>,
     pub author_association: Option<String>,
     pub draft: Option<bool>,
@@ -510,10 +510,11 @@ pub struct PullRequestPullRequestMilestoneCreator {
 pub struct PullRequestPullRequestHead {
     pub label: Option<String>,
     #[serde(rename = "ref")]
-    pub ref_key: Option<String>,
-    pub sha: Option<String>,
+    pub ref_key: String,
+    pub sha: String,
     pub user: Option<PullRequestPullRequestHeadUser>,
-    pub repo: Option<PullRequestPullRequestHeadRepo>,
+    // required on pullrequests
+    pub repo: PullRequestPullRequestHeadRepo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -541,15 +542,15 @@ pub struct PullRequestPullRequestHeadUser {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PullRequestPullRequestHeadRepo {
-    pub id: Option<i64>,
-    pub node_id: Option<String>,
-    pub name: Option<String>,
-    pub full_name: Option<String>,
+    pub id: i64,
+    pub node_id: String,
+    pub name: String,
+    pub full_name: String,
     pub private: Option<bool>,
     pub owner: Option<PullRequestPullRequestHeadRepoOwner>,
     pub html_url: Option<String>,
     pub description: Option<String>,
-    pub fork: Option<bool>,
+    pub fork: bool,
     pub url: Option<String>,
     pub forks_url: Option<String>,
     pub keys_url: Option<String>,
@@ -591,7 +592,7 @@ pub struct PullRequestPullRequestHeadRepo {
     pub updated_at: Option<serde_json::value::Value>,
     pub pushed_at: Option<serde_json::value::Value>,
     pub git_url: Option<String>,
-    pub ssh_url: Option<String>,
+    pub ssh_url: String,
     pub clone_url: Option<String>,
     pub svn_url: Option<String>,
     pub homepage: Option<String>,
@@ -649,12 +650,12 @@ pub struct PullRequestPullRequestHeadRepoLicense {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PullRequestPullRequestBase {
-    pub label: Option<String>,
+    pub label: String,
     #[serde(rename = "ref")]
-    pub ref_key: Option<String>,
-    pub sha: Option<String>,
+    pub ref_key: String,
+    pub sha: String,
     pub user: Option<PullRequestPullRequestBaseUser>,
-    pub repo: Option<PullRequestPullRequestBaseRepo>,
+    pub repo: PullRequestPullRequestBaseRepo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -682,10 +683,10 @@ pub struct PullRequestPullRequestBaseUser {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PullRequestPullRequestBaseRepo {
-    pub id: Option<i64>,
-    pub node_id: Option<String>,
-    pub name: Option<String>,
-    pub full_name: Option<String>,
+    pub id: i64,
+    pub node_id: String,
+    pub name: String,
+    pub full_name: String,
     pub private: Option<bool>,
     pub owner: Option<PullRequestPullRequestBaseRepoOwner>,
     pub html_url: Option<String>,
@@ -916,7 +917,7 @@ pub struct PullRequestRepository {
     pub updated_at: Option<serde_json::value::Value>,
     pub pushed_at: Option<serde_json::value::Value>,
     pub git_url: Option<String>,
-    pub ssh_url: Option<String>,
+    pub ssh_url: String,
     pub clone_url: Option<String>,
     pub svn_url: Option<String>,
     pub homepage: Option<String>,
@@ -997,24 +998,24 @@ pub struct PullRequestSender {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueComment {
-    pub action: Option<String>,
-    pub issue: Option<IssueCommentIssue>,
-    pub comment: Option<IssueCommentComment>,
-    pub repository: Option<IssueCommentRepository>,
-    pub sender: Option<IssueCommentSender>,
+    pub action: String,
+    pub issue: IssueCommentIssue,
+    pub comment: IssueCommentComment,
+    pub repository: IssueCommentRepository,
+    pub sender: IssueCommentSender,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueCommentIssue {
-    pub url: Option<String>,
-    pub repository_url: Option<String>,
+    pub url: String,
+    pub repository_url: String,
     pub labels_url: Option<String>,
     pub comments_url: Option<String>,
     pub events_url: Option<String>,
     pub html_url: Option<String>,
     pub id: Option<i64>,
     pub node_id: Option<String>,
-    pub number: Option<i64>,
+    pub number: i64,
     pub title: Option<String>,
     pub user: Option<IssueCommentIssueUser>,
     pub state: Option<String>,
@@ -1032,7 +1033,7 @@ pub struct IssueCommentIssue {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueCommentIssueUser {
-    pub login: Option<String>,
+    pub login: String,
     pub id: Option<i64>,
     pub node_id: Option<String>,
     pub avatar_url: Option<String>,
@@ -1072,7 +1073,7 @@ pub struct IssueCommentComment {
     pub created_at: Option<serde_json::value::Value>,
     pub updated_at: Option<serde_json::value::Value>,
     pub author_association: Option<String>,
-    pub body: Option<String>,
+    pub body: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -1103,7 +1104,7 @@ pub struct IssueCommentRepository {
     pub id: Option<i64>,
     pub node_id: Option<String>,
     pub name: Option<String>,
-    pub full_name: Option<String>,
+    pub full_name: String,
     pub private: Option<bool>,
     pub owner: Option<IssueCommentRepositoryOwner>,
     pub html_url: Option<String>,
@@ -1261,8 +1262,8 @@ pub struct RepoPr {
     pub assignees: Option<Vec<RepoPrAssigneesItem>>,
     pub requested_reviewers: Option<Vec<RepoPrRequestedReviewersItem>>,
     pub requested_teams: Option<Vec<RepoPrRequestedTeamsItem>>,
-    pub head: Option<RepoPrHead>,
-    pub base: Option<RepoPrBase>,
+    pub head: RepoPrHead,
+    pub base: RepoPrBase,
     pub _links: Option<RepoPrLinks>,
     pub author_association: Option<String>,
     pub draft: Option<bool>,
@@ -1445,10 +1446,10 @@ pub struct RepoPrRequestedTeamsItem {
 pub struct RepoPrHead {
     pub label: Option<String>,
     #[serde(rename = "ref")]
-    pub ref_key: Option<String>,
-    pub sha: Option<String>,
+    pub ref_key: String,
+    pub sha: String,
     pub user: Option<RepoPrHeadUser>,
-    pub repo: Option<RepoPrHeadRepo>,
+    pub repo: RepoPrHeadRepo,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

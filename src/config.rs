@@ -18,6 +18,7 @@ pub enum Feature {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub server: Server,
     pub github: Site,
     pub gitlab: Site,
     pub mappings: Vec<Mapping>,
@@ -46,6 +47,11 @@ pub struct Actions {
 #[derive(Debug, Deserialize)]
 pub struct Commands {
     pub enabled_commands: Vec<commands::CommandAction>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Server {
+    pub bindto: String,
 }
 
 #[derive(Debug, Deserialize)]

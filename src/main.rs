@@ -1,9 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro, try_trait)]
-
-#[macro_use]
-extern crate rocket;
-#[macro_use]
-extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
@@ -13,6 +7,7 @@ extern crate regex;
 extern crate reqwest;
 extern crate toml;
 extern crate url;
+use axum::{extract::DefaultBodyLimit, routing::get, routing::post, Router};
 
 mod api;
 mod commands;
@@ -26,20 +21,26 @@ mod testing;
 
 use log::info;
 
-fn main() {
-    let rocket = rocket::ignite();
+const MAX_BODY_LENGTH: usize = 10 * 1024 * 1024;
+
+#[tokio::main]
+async fn main() {
+    // initialize tracing
+    //tracing_subscriber::fmt::init();
 
     info!("✨ May your hopes and dreams become reality ✨");
     config::load_config();
 
-    rocket
-        .mount("/github", routes![service::github_event])
-        .mount("/gitlab", routes![service::gitlab_event])
-        .mount("/", routes![service::check])
-        .register(catchers![
-            errors::not_found,
-            errors::internal_server_error,
-            errors::unprocessable_entity
-        ])
-        .launch();
+    // build our application with a single route
+    let app = Router::new()
+        .route("/check", get(service::check))
+        .route("/github/events", post(service::github_event))
+        .route("/gitlab/events", post(service::gitlab_event))
+        .layer(DefaultBodyLimit::max(MAX_BODY_LENGTH));
+
+    // run it with hyper on localhost:12345
+    axum::Server::bind(&config::CONFIG.server.bindto.parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
