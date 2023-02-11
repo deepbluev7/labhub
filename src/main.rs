@@ -28,6 +28,8 @@ async fn main() {
     // initialize tracing
     //tracing_subscriber::fmt::init();
 
+    env_logger::init();
+
     info!("✨ May your hopes and dreams become reality ✨");
     config::load_config();
 

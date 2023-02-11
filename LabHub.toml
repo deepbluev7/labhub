@@ -13,7 +13,7 @@ enabled_commands = [
 
 # what address to run on
 [server]
-bindto = "localhost:12345"
+bindto = "127.0.0.1:12345"
 
 # Settings for GitHub
 [github]
