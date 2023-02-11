@@ -29,6 +29,8 @@ lazy_static! {
     };
 }
 
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
 fn get_gitlab_repo_name(github_repo_full_name: &str) -> String {
     let hub_to_lab_lock = config::HUB_TO_LAB.lock().unwrap();
     let hub_to_lab = &*hub_to_lab_lock;
@@ -417,7 +419,9 @@ Have a great day! 😄",
 }
 
 async fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent(APP_USER_AGENT)
+        .build()?;
     info!(
         "Issue comment received for issue number={} action={}",
         ic.issue.number, ic.action,
@@ -454,9 +458,15 @@ Thanks for asking 🥰"
                 }
             }
         }
-        Err(commands::CommandError::BadUsername) => Err(GitError{ message : "Bad username for command".to_owned() }),
-        Err(commands::CommandError::InvalidLength) => Err(GitError{ message : "Too many parameters for command".to_owned() }),
-        Err(commands::CommandError::InvalidFormat) => Err(GitError{ message : "Invalid format for command".to_owned() })
+        Err(commands::CommandError::BadUsername) => Err(GitError {
+            message: "Bad username for command".to_owned(),
+        }),
+        Err(commands::CommandError::InvalidLength) => Err(GitError {
+            message: "Too many parameters for command".to_owned(),
+        }),
+        Err(commands::CommandError::InvalidFormat) => Err(GitError {
+            message: "Invalid format for command".to_owned(),
+        }),
     }
 }
 

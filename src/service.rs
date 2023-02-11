@@ -28,10 +28,9 @@ pub async fn github_event(
     debug!("body={}", body);
 
     // Handle the event
-    Ok(Json(github::handle_event_body(
-        &event_type.0.as_ref(),
-        &body,
-    ).await?))
+    Ok(Json(
+        github::handle_event_body(&event_type.0.as_ref(), &body).await?,
+    ))
 }
 
 pub async fn gitlab_event(Json(event): Json<serde_json::Value>) -> Json<serde_json::Value> {
