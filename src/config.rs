@@ -61,6 +61,7 @@ pub struct Site {
     pub ssh_key: String,
     pub api_token: String,
     pub hostname: Option<String>,
+    pub ssh_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

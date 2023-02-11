@@ -44,7 +44,7 @@ fn get_gitlab_repo_name(github_repo_full_name: &str) -> String {
 fn get_remote_callbacks(site: &config::Site) -> RemoteCallbacks {
     let mut remote_callbacks = RemoteCallbacks::new();
     let ssh_key = site.ssh_key.clone();
-    remote_callbacks.credentials(move |_user, _user_from_url, cred| {
+    remote_callbacks.credentials(move |_url, _user_from_url, cred| {
         debug!("Entered Git credential callback, cred={:?}", cred);
         if cred.contains(git2::CredentialType::USERNAME) {
             git2::Cred::username(&"git".to_string())
@@ -112,12 +112,14 @@ impl RepositoryExt for Repository {
         let github_refspec = format!("+refs/heads/*:refs/remotes/{}/*", pr_handle.github_remote);
         self.remote_add_fetch(&pr_handle.github_remote, &github_refspec)?;
         self.remote_set_url(&pr_handle.github_remote, &pr_handle.github_clone_url)?;
-        let hostname = match config::CONFIG.gitlab.hostname.as_ref() {
-            Some(hostname) => hostname.clone(),
-            _ => "gitlab.com".to_string(),
-        };
+        let hostname = config::CONFIG
+            .gitlab
+            .ssh_url
+            .clone()
+            .or(config::CONFIG.gitlab.hostname.clone())
+            .unwrap_or("gitlab.com".to_string());
         let gitlab_url = format!(
-            "git@{}:{}.git",
+            "ssh://git@{}/{}.git",
             hostname,
             get_gitlab_repo_name(&pr_handle.base_full_name)
         );
@@ -265,6 +267,7 @@ fn handle_pr_closed(pr: &github::PullRequest) -> Result<String, GitError> {
 fn handle_pr_updated(pr: &github::PullRequest) -> Result<String, GitError> {
     info!("Handling open PR");
     let url = &pr.repository.ssh_url;
+    info!("Handling open PR ssh: {}", url);
     let mut repos = REPOS.lock();
     let repo_data = repos
         .as_mut()
