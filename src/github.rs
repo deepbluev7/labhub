@@ -423,10 +423,10 @@ async fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
         ic.issue.number, ic.action,
     );
 
-    if ic.sender.login == Some(config::CONFIG.github.username.to_owned()) {
-        info!("Hey this is my comment :D Skipping");
-        return Ok(());
-    }
+    //if ic.sender.login == Some(config::CONFIG.github.username.to_owned()) {
+    //    info!("Hey this is my comment :D Skipping");
+    //    return Ok(());
+    //}
 
     let command_res =
         commands::parse_body(ic.comment.body.as_ref(), &*config::CONFIG.github.username);
