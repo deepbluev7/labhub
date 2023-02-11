@@ -10,7 +10,6 @@ use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;
-use std::thread;
 use tempfile::{tempdir, TempDir};
 
 #[cfg(test)]
@@ -464,10 +463,12 @@ async fn handle_ic(ic: github::IssueComment) {
             Ok(()) => info!("Finished handling issue comment"),
             Err(_err) => info!("Ignoring issue comment because it's invalid"),
         }
+    } else {
+        info!("Ignoring non-PR comment");
     }
 }
 
-pub fn handle_event_body(event_type: &str, body: &str) -> Result<String, RequestErrorResult> {
+pub async fn handle_event_body(event_type: &str, body: &str) -> Result<String, RequestErrorResult> {
     match event_type {
         "push" => {
             let push: github::Push = serde_json::from_str(body)?;
@@ -480,7 +481,7 @@ pub fn handle_event_body(event_type: &str, body: &str) -> Result<String, Request
                 // check if pull request event trigger action is enabled in config file
                 if config::action_enabled(pr.action.as_ref()) {
                     info!("PullRequest action={}", pr.action);
-                    thread::spawn(move || handle_pr(pr));
+                    handle_pr(pr)?;
                 } else {
                     info!("Event trigger action not enabled. Skipping event.");
                 }
@@ -501,7 +502,7 @@ pub fn handle_event_body(event_type: &str, body: &str) -> Result<String, Request
                         .map(|u| u.login.clone())
                         .unwrap_or("Unknown user".to_owned())
                 );
-                thread::spawn(move || handle_ic(ic));
+                handle_ic(ic).await;
             } else {
                 info!("Commands feature not enabled. Skipping event.");
             }
