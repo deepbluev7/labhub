@@ -18,7 +18,7 @@ lazy_static = "1.4"
 log = "0.4"
 percent-encoding = "2.1"
 regex = "1"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "gzip", "brotli", "deflate"] }
 ring = "0.13"
 axum = { version = "0.6", features = ["headers"] }
 serde = "1.0"

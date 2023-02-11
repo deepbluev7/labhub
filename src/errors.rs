@@ -80,6 +80,16 @@ impl From<serde_json::error::Error> for RequestErrorResult {
     }
 }
 
+impl From<GitError> for RequestErrorResult {
+    fn from(error: GitError) -> Self {
+        RequestErrorResult::BadRequest {
+            0: BadRequest {
+                response: serde_json::json!({ "error": format!("{:?}", error) }),
+            },
+        }
+    }
+}
+
 impl From<git2::Error> for GitError {
     fn from(error: git2::Error) -> Self {
         GitError {

@@ -35,13 +35,13 @@ pub async fn get_pull(
     org: &str,
     repo: &str,
     number: i64,
-) -> Result<github::RepoPr, GitError> {
-    let res: github::RepoPr = client
+) -> Result<github::PullRequestPullRequest, GitError> {
+    let res: github::PullRequestPullRequest = client
         .get(&format!("{}/pulls/{}", make_repo_url(org, repo), number))
         .headers(headers(&config::CONFIG.github.api_token))
         .send()
         .await?
-        .json::<github::RepoPr>()
+        .json::<github::PullRequestPullRequest>()
         .await?;
     Ok(res)
 }

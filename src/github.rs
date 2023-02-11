@@ -298,7 +298,7 @@ impl github::PullRequest {
     }
 }
 
-fn handle_pr(pr: github::PullRequest) -> Result<(), RequestErrorResult> {
+fn handle_pr(pr: github::PullRequest) -> Result<(), GitError> {
     if pr.is_fork() {
         info!("PR is a fork");
         let result = match pr.action.as_ref() {
@@ -403,6 +403,7 @@ async fn handle_retry_command(
     let project = get_gitlab_repo_name(&repo_full_name);
     info!("Got retry command for project={} sha={}", project, sha);
     let pipeline_id = find_pipeline_id(&client, &get_gitlab_repo_name(&project), &sha).await?;
+    info!("Retrying pipeline id: {}", pipeline_id);
     gitlab_client::retry_pipeline(&client, &project, pipeline_id).await?;
 
     let comment_body = format!(
@@ -415,12 +416,65 @@ Have a great day! 😄",
         gitlab_client::make_ext_url(&project),
     );
 
+    info!("Commenting on github");
     write_issue_comment(&client, ic, &comment_body).await
+}
+
+async fn handle_new_pipeline_command(
+    client: &reqwest::Client,
+    ic: &github::IssueComment,
+) -> Result<(), GitError> {
+    let repo_full_name = ic.repository.full_name.clone();
+    info!("Got new pipeline command");
+
+    let repo_full_name_parts: Vec<String> = repo_full_name
+        .split('/')
+        .map(std::string::ToString::to_string)
+        .collect();
+    let pr = github_client::get_pull(
+        client,
+        &repo_full_name_parts[0],
+        &repo_full_name_parts[1],
+        ic.issue.number,
+    )
+    .await?;
+    // check if pull request event trigger action is enabled in config file
+    if config::action_enabled("opened") {
+        info!("PullRequestNew");
+        let pullrequest = github::PullRequest {
+            action: "opened".to_owned(),
+            number: ic.issue.number,
+            pull_request: pr,
+            repository: ic.repository.clone(),
+            sender: ic.sender.clone(),
+        };
+        handle_pr(pullrequest)?;
+    } else {
+        info!("Event trigger action not enabled. Skipping event.");
+    }
+
+    Ok(())
+
+    //    info!("Commenting on github");
+    //
+    //    let comment_body = format!(
+    //        "Sent **retry** command for pipeline [**{}**]({}/pipelines/{}) on [**GitLab**]({})
+    //
+    //Have a great day! 😄",
+    //        pipeline_id,
+    //        gitlab_client::make_ext_url(&project),
+    //        pipeline_id,
+    //        gitlab_client::make_ext_url(&project),
+    //    );
+    //    write_issue_comment(&client, ic, &comment_body).await
 }
 
 async fn handle_pr_ic(ic: github::IssueComment) -> Result<(), GitError> {
     let client = reqwest::Client::builder()
         .user_agent(APP_USER_AGENT)
+        .gzip(true)
+        .brotli(true)
+        .deflate(true)
         .build()?;
     info!(
         "Issue comment received for issue number={} action={}",
@@ -455,6 +509,9 @@ Thanks for asking 🥰"
             } else {
                 match command.command {
                     commands::CommandAction::Retry => handle_retry_command(&client, &ic).await,
+                    commands::CommandAction::NewPipeline => {
+                        handle_new_pipeline_command(&client, &ic).await
+                    }
                 }
             }
         }

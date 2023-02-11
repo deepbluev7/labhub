@@ -6,9 +6,10 @@ fn tokenize_comment(body: &str) -> Vec<&str> {
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub enum CommandAction {
     Retry,
+    NewPipeline,
 }
 
 #[derive(Debug, PartialEq)]
@@ -35,6 +36,7 @@ impl TryFrom<&str> for CommandAction {
     fn try_from(body: &str) -> Result<Self, Self::Error> {
         match body.to_lowercase().as_ref() {
             "retry" => Ok(CommandAction::Retry),
+            "new-pipeline" => Ok(CommandAction::NewPipeline),
             _ => Err(CommandError::UnknownCommand),
         }
     }

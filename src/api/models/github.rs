@@ -390,8 +390,8 @@ pub struct PullRequest {
     pub action: String,
     pub number: i64,
     pub pull_request: PullRequestPullRequest,
-    pub repository: PullRequestRepository,
-    pub sender: PullRequestSender,
+    pub repository: GithubRepository,
+    pub sender: GithubSender,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -865,12 +865,12 @@ pub struct PullRequestPullRequestMergedBy {
     pub site_admin: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PullRequestRepository {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GithubRepository {
     pub id: Option<i64>,
     pub node_id: Option<String>,
     pub name: Option<String>,
-    pub full_name: Option<String>,
+    pub full_name: String,
     pub private: Option<bool>,
     pub owner: Option<PullRequestRepositoryOwner>,
     pub html_url: Option<String>,
@@ -941,7 +941,7 @@ pub struct PullRequestRepository {
     pub default_branch: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PullRequestRepositoryOwner {
     pub login: Option<String>,
     pub id: Option<i64>,
@@ -964,7 +964,7 @@ pub struct PullRequestRepositoryOwner {
     pub site_admin: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PullRequestRepositoryLicense {
     pub key: Option<String>,
     pub name: Option<String>,
@@ -973,8 +973,8 @@ pub struct PullRequestRepositoryLicense {
     pub node_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PullRequestSender {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GithubSender {
     pub login: Option<String>,
     pub id: Option<i64>,
     pub node_id: Option<String>,
@@ -1001,8 +1001,8 @@ pub struct IssueComment {
     pub action: String,
     pub issue: IssueCommentIssue,
     pub comment: IssueCommentComment,
-    pub repository: IssueCommentRepository,
-    pub sender: IssueCommentSender,
+    pub repository: GithubRepository,
+    pub sender: GithubSender,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -1100,82 +1100,6 @@ pub struct IssueCommentCommentUser {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct IssueCommentRepository {
-    pub id: Option<i64>,
-    pub node_id: Option<String>,
-    pub name: Option<String>,
-    pub full_name: String,
-    pub private: Option<bool>,
-    pub owner: Option<IssueCommentRepositoryOwner>,
-    pub html_url: Option<String>,
-    pub description: Option<String>,
-    pub fork: Option<bool>,
-    pub url: Option<String>,
-    pub forks_url: Option<String>,
-    pub keys_url: Option<String>,
-    pub collaborators_url: Option<String>,
-    pub teams_url: Option<String>,
-    pub hooks_url: Option<String>,
-    pub issue_events_url: Option<String>,
-    pub events_url: Option<String>,
-    pub assignees_url: Option<String>,
-    pub branches_url: Option<String>,
-    pub tags_url: Option<String>,
-    pub blobs_url: Option<String>,
-    pub git_tags_url: Option<String>,
-    pub git_refs_url: Option<String>,
-    pub trees_url: Option<String>,
-    pub statuses_url: Option<String>,
-    pub languages_url: Option<String>,
-    pub stargazers_url: Option<String>,
-    pub contributors_url: Option<String>,
-    pub subscribers_url: Option<String>,
-    pub subscription_url: Option<String>,
-    pub commits_url: Option<String>,
-    pub git_commits_url: Option<String>,
-    pub comments_url: Option<String>,
-    pub issue_comment_url: Option<String>,
-    pub contents_url: Option<String>,
-    pub compare_url: Option<String>,
-    pub merges_url: Option<String>,
-    pub archive_url: Option<String>,
-    pub downloads_url: Option<String>,
-    pub issues_url: Option<String>,
-    pub pulls_url: Option<String>,
-    pub milestones_url: Option<String>,
-    pub notifications_url: Option<String>,
-    pub labels_url: Option<String>,
-    pub releases_url: Option<String>,
-    pub deployments_url: Option<String>,
-    pub created_at: Option<serde_json::value::Value>,
-    pub updated_at: Option<serde_json::value::Value>,
-    pub pushed_at: Option<serde_json::value::Value>,
-    pub git_url: Option<String>,
-    pub ssh_url: Option<String>,
-    pub clone_url: Option<String>,
-    pub svn_url: Option<String>,
-    pub homepage: Option<String>,
-    pub size: Option<i64>,
-    pub stargazers_count: Option<i64>,
-    pub watchers_count: Option<i64>,
-    pub language: Option<String>,
-    pub has_issues: Option<bool>,
-    pub has_projects: Option<bool>,
-    pub has_downloads: Option<bool>,
-    pub has_wiki: Option<bool>,
-    pub has_pages: Option<bool>,
-    pub forks_count: Option<i64>,
-    pub mirror_url: Option<String>,
-    pub archived: Option<bool>,
-    pub open_issues_count: Option<i64>,
-    pub license: Option<IssueCommentRepositoryLicense>,
-    pub forks: Option<i64>,
-    pub open_issues: Option<i64>,
-    pub watchers: Option<i64>,
-    pub default_branch: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct IssueCommentRepositoryOwner {
     pub login: Option<String>,
     pub id: Option<i64>,
@@ -1205,29 +1129,6 @@ pub struct IssueCommentRepositoryLicense {
     pub spdx_id: Option<String>,
     pub url: Option<String>,
     pub node_id: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IssueCommentSender {
-    pub login: Option<String>,
-    pub id: Option<i64>,
-    pub node_id: Option<String>,
-    pub avatar_url: Option<String>,
-    pub gravatar_id: Option<String>,
-    pub url: Option<String>,
-    pub html_url: Option<String>,
-    pub followers_url: Option<String>,
-    pub following_url: Option<String>,
-    pub gists_url: Option<String>,
-    pub starred_url: Option<String>,
-    pub subscriptions_url: Option<String>,
-    pub organizations_url: Option<String>,
-    pub repos_url: Option<String>,
-    pub events_url: Option<String>,
-    pub received_events_url: Option<String>,
-    #[serde(rename = "type")]
-    pub type_key: Option<String>,
-    pub site_admin: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
