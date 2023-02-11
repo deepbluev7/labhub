@@ -442,7 +442,7 @@ Thanks for asking 🥰"
             write_issue_comment(&client, &ic, &comment_body).await?;
             Ok(())
         }
-        _ => {
+        Ok(_) => {
             let command = command_res.unwrap();
 
             if !config::command_enabled(&command.command) {
@@ -454,6 +454,9 @@ Thanks for asking 🥰"
                 }
             }
         }
+        Err(commands::CommandError::BadUsername) => Err(GitError{ message : "Bad username for command".to_owned() }),
+        Err(commands::CommandError::InvalidLength) => Err(GitError{ message : "Too many parameters for command".to_owned() }),
+        Err(commands::CommandError::InvalidFormat) => Err(GitError{ message : "Invalid format for command".to_owned() })
     }
 }
 
@@ -461,7 +464,7 @@ async fn handle_ic(ic: github::IssueComment) {
     if ic.is_from_pr() {
         match handle_pr_ic(ic).await {
             Ok(()) => info!("Finished handling issue comment"),
-            Err(_err) => info!("Ignoring issue comment because it's invalid"),
+            Err(_err) => info!("Error acting on issue comment: {}", _err.message),
         }
     } else {
         info!("Ignoring non-PR comment");
